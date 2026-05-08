@@ -1,0 +1,93 @@
+name: github-build-and-upload
+
+on:
+  # Trigger the action manually from the UI
+  workflow_dispatch: # Trigger the workflow on pushes
+
+  push:
+    # Trigger a dev build for every push
+    branches:
+      - "**"
+    # Trigger the action when a tag is pushed (to any branch)
+    tags:
+      - "**"
+
+jobs:
+  get-targets:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get targets
+        id: targets
+        run: |
+          echo targets=\[\"$(grep -ie "^from[[:space:]].*[[:space:]]as[[:space:]].*$" Dockerfile | awk '{print $4}')\"\] | sed 's/ /","/g' >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    name: Build Docker Images
+    needs: get-targets
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.get-targets.outputs.targets) }}
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            name=ghcr.io/jon-hedgerows/${{ matrix.target }}
+          tags: |
+            # add the dev tag, except for tags
+            type=raw,value=dev,enable=${{ !startsWith(github.ref, 'refs/tags/') }}
+            # add a version tag matching the name of the git tag, except version tags
+            type=ref,event=tag,enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
+            # output yearmonthday
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            # output 1.1.2
+            type=semver,pattern={{version}}
+            # output 1.1
+            type=semver,pattern={{major}}.{{minor}}
+            # output 1, disabled if major zero
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            # full length sha
+            type=sha,format=short
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
