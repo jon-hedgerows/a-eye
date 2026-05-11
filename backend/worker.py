@@ -15,7 +15,7 @@ from backend.database import (
     update_image,
 )
 from backend.filename import ensure_unique
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 from backend.date_extract import extract_date_from_text
 from backend.pipeline import process_image
 from backend.xmp_writer import rename_xmp_sidecar, write_xmp_sidecar
@@ -30,7 +30,7 @@ class WorkerQueue:
         self,
         db: aiosqlite.Connection,
         settings: Settings,
-        ollama: OllamaClient,
+        ollama: LLMClient,
     ) -> None:
         self.db = db
         self.settings = settings

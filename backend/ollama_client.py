@@ -26,8 +26,8 @@ _VISION_MAX_PX = 1280
 _VISION_JPEG_QUALITY = 85
 
 
-class OllamaClient:
-    """Async wrapper for the Ollama HTTP API."""
+class LLMClient:
+    """Async wrapper for a local LLM endpoint (e.g., LM Studio, OpenAI compatible)."""
 
     def __init__(self, host: str, vision_model: str, llm_model: str = "") -> None:
         self.host = host.rstrip("/")
@@ -56,29 +56,33 @@ class OllamaClient:
         except httpx.HTTPError:
             return False
 
-    async def list_models(self) -> list[dict[str, Any]]:
-        """Return the list of models available on the Ollama server."""
+    async def list_models(self) -> list[str]:
+        """Return the list of available models on the local endpoint."""
         try:
-            resp = await self._client.get(f"{self.host}/api/tags")
+            # LM Studio/OpenAI compatible API often uses a /v1/models endpoint
+            resp = await self._client.get(f"{self.host}/v1/models")
             resp.raise_for_status()
             data = resp.json()
             return data.get("models", [])
         except httpx.HTTPError:
-            logger.warning("Failed to list Ollama models", exc_info=True)
+            logger.warning("Failed to list LLM models.", exc_info=True)
             return []
 
-    async def get_model_capabilities(self, model_name: str) -> list[str]:
+    async def get_model_capabilities(self, model_name: str) -> str:
         """Fetch capabilities for a single model via /api/show."""
         try:
-            resp = await self._client.post(
-                f"{self.host}/api/show",
-                json={"name": model_name},
-            )
+            resp = await self._client.get(f"{self.host}/v1/models")
             resp.raise_for_status()
-            return resp.json().get("capabilities", [])
+            data = resp.json()
+            criteria = {"key": model_name}  # Adjust based on actual API response structure"}
+            for entry in data:
+                if all(item in entry.items() for item in criteria.items()):
+                    return entry.get("capabilities", [])
+            return []
         except httpx.HTTPError:
             logger.debug("Failed to get capabilities for %s", model_name)
             return []
+        
 
     async def list_models_by_capability(self) -> dict[str, list[str]]:
         """Return models grouped into vision-capable and text-only lists."""
@@ -212,7 +216,7 @@ def _encode_image(image_path: Path) -> str:
 
     # Only downscale — don't upscale small images
     if max(img.size) > _VISION_MAX_PX:
-        img.thumbnail((_VISION_MAX_PX, _VISION_MAX_PX), Image.LANCZOS)
+        img.thumbnail((_VISION_MAX_PX, _VISION_MAX_PX), Image.Resampling.LANCZOS)
 
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=_VISION_JPEG_QUALITY)

@@ -7,7 +7,7 @@ from typing import Any
 
 import aiosqlite
 
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ Return ONLY this JSON, no explanation:
 async def search_images(
     db: aiosqlite.Connection,
     query: str,
-    ollama: OllamaClient | None = None,
+    ollama: LLMClient | None = None,
     use_llm: bool = False,
     limit: int = 200,
 ) -> dict[str, Any]:
@@ -70,7 +70,7 @@ async def search_images(
 async def _llm_search(
     db: aiosqlite.Connection,
     query: str,
-    ollama: OllamaClient,
+    ollama: LLMClient,
     limit: int,
 ) -> dict[str, Any]:
     """Use the text LLM to interpret the query, then execute SQL."""

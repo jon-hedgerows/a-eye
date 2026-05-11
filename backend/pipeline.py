@@ -9,7 +9,7 @@ from backend.filename import render_template, sanitize_filename
 from backend.geocode import reverse_geocode_location
 from backend.metadata import extract_metadata
 from backend.models import MetadataResult, PipelineResult
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def process_image(
     file_path: Path,
     settings: Settings,
-    ollama: OllamaClient,
+    llm_client: LLMClient,
     processing_context: str | None = None,
 ) -> PipelineResult:
     """Run the full rename pipeline on a single image.
@@ -62,7 +62,7 @@ async def process_image(
     # ── Stage 2: Vision ──────────────────────────────────────────────────
 
     try:
-        description, suggested_name, tags, quality_flags = await ollama.describe_and_name_image(
+        description, suggested_name, tags, quality_flags = await llm_client.describe_and_name_image(
             image_path=file_path,
             metadata=meta_for_prompt,
             include_tags=True,  # Always generate tags for the database

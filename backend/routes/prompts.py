@@ -104,7 +104,7 @@ async def api_activate_prompt(request: Request, prompt_id: int):
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
-    # Reload templates on the OllamaClient
+    # Reload templates on the LLMClient
     await _reload_templates(request)
 
     return {"activated": True}
@@ -129,9 +129,9 @@ async def api_export_prompt(request: Request, prompt_id: int):
 
 
 async def _reload_templates(request: Request) -> None:
-    """Reload active prompt templates onto the OllamaClient."""
+    """Reload active prompt templates onto the LLMClient."""
     db = request.app.state.db
-    ollama = request.app.state.ollama
+    llm_client = request.app.state.llm_client
 
     vision = await get_active_prompt(db, STAGE_VISION)
     context = await get_active_prompt(db, STAGE_CONTEXT)
@@ -139,10 +139,10 @@ async def _reload_templates(request: Request) -> None:
     vision_content = vision["content"] if vision else ""
     context_content = context["content"] if context else ""
 
-    ollama.set_templates(vision_content, context_content)
-    logger.info("Reloaded prompt templates on OllamaClient")
+    llm_client.set_templates(vision_content, context_content)
+    logger.info("Reloaded prompt templates on LLMClient")
 
-    # Also reload on workspace's ollama if it exists
+    # Also reload on workspace's llm_client if it exists
     workspace = getattr(request.app.state, "workspace", None)
-    if workspace and hasattr(workspace, "ollama"):
-        workspace.ollama.set_templates(vision_content, context_content)
+    if workspace and hasattr(workspace, "llm_client"):
+        workspace.llm_client.set_templates(vision_content, context_content)

@@ -1,12 +1,13 @@
 services:
   a-eye:
-    image: spaceinvaderone/a-eye
+    # image: spaceinvaderone/a-eye
     build: .
     container_name: a-eye
     ports:
       - "8000:8000"
     environment:
-      OLLAMA_HOST: http://host.docker.internal:11434  # Or use your server's IP
+      #OLLAMA_HOST: http://host.docker.internal:11434  # Or use your server's IP
+      OLLAMA_HOST: http://host.docker.internal:1234   # Or use your server's IP
       PUID: 1000   # Set to the UID that owns your photos directory (run: id -u)
       PGID: 1000   # Set to the GID that owns your photos directory (run: id -g)
     volumes:

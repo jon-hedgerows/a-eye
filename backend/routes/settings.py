@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from backend.config import update_settings as config_update_settings, get_settings
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ async def _apply_settings_update(request: Request, body: SettingsUpdate):
     # Recreate Ollama client if connection settings changed
     if ollama_changed:
         old_ollama = request.app.state.ollama
-        new_ollama = OllamaClient(
+        new_ollama = LLMClient(
             host=new_settings.ollama_host,
             vision_model=new_settings.vision_model,
             llm_model=new_settings.llm_model,

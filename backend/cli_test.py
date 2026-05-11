@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from backend.config import Settings
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 from backend.pipeline import process_image
 
 
@@ -66,7 +66,7 @@ def main() -> None:
 
 
 async def _run(image_path: Path, settings: Settings) -> None:
-    ollama = OllamaClient(
+    llm_client = LLMClient(
         host=settings.ollama_host,
         vision_model=settings.vision_model,
         llm_model=settings.llm_model,
@@ -74,21 +74,21 @@ async def _run(image_path: Path, settings: Settings) -> None:
 
     try:
         # Check connection first
-        connected = await ollama.check_connection()
+        connected = await llm_client.check_connection()
         if not connected:
-            print(f"Error: Cannot connect to Ollama at {settings.ollama_host}", file=sys.stderr)
+            print(f"Error: Cannot connect to LLM Server at {settings.ollama_host}", file=sys.stderr)
             sys.exit(1)
-        print("Ollama connection: OK")
+        print("LLM Server connection: OK")
 
         # List available models
-        models = await ollama.list_models()
-        model_names = [m.get("name", "?") for m in models]
+        models = await llm_client.list_models()
+        model_names = [m.get("key", "?") for m in models]
         print(f"Available models: {', '.join(model_names)}")
         print()
 
         # Run the pipeline
         print("Processing image...")
-        result = await process_image(image_path, settings, ollama)
+        result = await process_image(image_path, settings, llm_client)
 
         # Display results
         print()
@@ -124,7 +124,7 @@ async def _run(image_path: Path, settings: Settings) -> None:
                 print(f"  {k}: {v}")
 
     finally:
-        await ollama.close()
+        await llm_client.close()
 
 
 if __name__ == "__main__":

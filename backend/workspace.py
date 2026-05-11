@@ -31,7 +31,7 @@ from backend.database import (
     update_image,
 )
 from backend.filename import ensure_unique
-from backend.ollama_client import OllamaClient
+from backend.ollama_client import LLMClient
 from backend.date_extract import extract_date_from_text
 from backend.pipeline import process_image
 from backend.watcher import IMAGE_EXTENSIONS
@@ -50,7 +50,7 @@ class Workspace:
         self,
         workspace_dir: Path,
         settings: Settings,
-        ollama: OllamaClient,
+        ollama: LLMClient,
     ) -> None:
         self.workspace_dir = workspace_dir
         self.settings = settings
