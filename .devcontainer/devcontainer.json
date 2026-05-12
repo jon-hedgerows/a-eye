@@ -14,8 +14,28 @@
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
 			"upgradePackages": true,
 			"packages": ""
+		},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			"moby": true,
+			"installDockerBuildx": true,
+			"version": "latest",
+			"dockerDashComposeVersion": "latest"
 		}
 	},
+	//
+	// mounts - mount host locations on the container
+	//
+	// work around VS Code's inability to read the docker context
+	// mount the user's docker socket, find the socket using:
+	// $ docker context inspect -f json | jq -r '.[0].Endpoints.docker.Host'
+	// remember to run this in the VM/host that actually runs docker
+	"mounts": [
+		{
+			"source": "/run/user/501/docker.sock",
+			"target": "/var/run/docker-host.sock",
+			"type": "bind"
+		}
+	],
 	//
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [],
@@ -31,7 +51,9 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.vscode-python-envs",
-				"ms-python.debugpy"
+				"ms-python.debugpy",
+				"ms-azuretools.vscode-docker",
+				"foxundermoon.shell-format"
 			]
 		}
 	}
