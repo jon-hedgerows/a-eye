@@ -31,7 +31,13 @@ Rules for the filename:
 
 {{format_instructions}}"""
 
-DEFAULT_CONTEXT_TEMPLATE = """{{user_context}}"""
+DEFAULT_CONTEXT_TEMPLATE = """\
+USER CONTEXT (from the photographer): {{user_context}}
+IMPORTANT: You MUST incorporate this context into your description and filename. \
+If the context names a subject, use that name (e.g. 'Shadow' not 'a dog'). \
+If the context names an event or occasion, include it (e.g. 'Sams wedding' → 'sams-wedding-ceremony'). \
+If the context names a location, include it (e.g. 'holiday in Crete' → 'crete-beach-sunset'). \
+Only ignore context that is clearly about a completely different subject."""
 
 # Stage constants
 STAGE_VISION = "vision"
