@@ -18,8 +18,9 @@ _settings: Settings | None = None
 
 
 class Settings(BaseSettings):
-    # -- Ollama Connection --
+    # -- Ollama / OpenAI-compatible Connection --
     ollama_host: str = "http://localhost:11434"
+    openai_api_key: str = ""  # Optional Bearer token for OpenAI-compatible endpoints
 
     # -- Model Selection --
     vision_model: str = "minicpm-v"

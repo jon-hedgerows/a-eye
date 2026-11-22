@@ -33,6 +33,11 @@
                     </div>
                     <div id="onboard-connection-result"></div>
                 </div>
+                <div class="form-group">
+                    <label for="onboard-api-key">OpenAI API Key (optional)</label>
+                    <input type="password" id="onboard-api-key" value="{{ settings.openai_api_key }}" placeholder="sk-...">
+                    <small>Bearer token for OpenAI-compatible endpoints (/v1). Leave blank for unauthenticated servers such as local Ollama.</small>
+                </div>
 
                 <!-- GPU/CPU Selection — shown after successful connection -->
                 <div id="onboard-hardware-group" style="display:none">

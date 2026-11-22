@@ -157,11 +157,11 @@ function onboardTestConnection() {
     resultDiv.innerHTML = '<span class="badge badge-processing">Connecting...</span>';
     testBtn.disabled = true;
 
-    // Save host so backend uses it for health check
+    // Save host + api key so backend uses them for health check
     fetch('/api/onboard/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings: { ollama_host: host } })
+        body: JSON.stringify({ settings: { ollama_host: host, openai_api_key: document.getElementById('onboard-api-key').value.trim() } })
     })
     .then(function(r) { return r.json(); })
     .then(function() {
@@ -680,6 +680,7 @@ function onboardFinish() {
 
     var settings = {
         ollama_host: document.getElementById('onboard-host').value.trim(),
+        openai_api_key: document.getElementById('onboard-api-key').value.trim(),
         vision_model: document.getElementById('onboard-vision-model').value,
         llm_model: document.getElementById('onboard-llm-model').value,
         catalogue_mode: isCatalogue ? 'true' : 'false',

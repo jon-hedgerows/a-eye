@@ -23,6 +23,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Test the A-Eye pipeline on an image")
     parser.add_argument("image", type=Path, help="Path to an image file")
     parser.add_argument("--ollama-host", default=None, help="Ollama API URL (default: from env/settings)")
+    parser.add_argument("--openai-api-key", default=None, help="OpenAI API key (optional)")
     parser.add_argument("--vision-model", default=None, help="Vision model name")
     parser.add_argument("--llm-model", default=None, help="LLM model name (enables two-model mode)")
     parser.add_argument("--template", default=None, help="Filename template")
@@ -46,6 +47,8 @@ def main() -> None:
     overrides = {}
     if args.ollama_host:
         overrides["ollama_host"] = args.ollama_host
+    if args.openai_api_key:
+        overrides["openai_api_key"] = args.openai_api_key
     if args.vision_model:
         overrides["vision_model"] = args.vision_model
     if args.llm_model:
@@ -57,6 +60,7 @@ def main() -> None:
 
     print(f"Image:        {args.image}")
     print(f"Ollama host:  {settings.ollama_host}")
+    print(f"API key:      {'set' if settings.openai_api_key else '(none — unauthenticated)'}")
     print(f"Vision model: {settings.vision_model}")
     print(f"LLM model:    {settings.llm_model or '(none — single-model mode)'}")
     print(f"Template:     {settings.filename_template}")
@@ -70,6 +74,7 @@ async def _run(image_path: Path, settings: Settings) -> None:
         host=settings.ollama_host,
         vision_model=settings.vision_model,
         llm_model=settings.llm_model,
+        openai_api_key=settings.openai_api_key,
     )
 
     try:

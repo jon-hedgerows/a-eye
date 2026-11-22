@@ -7,6 +7,7 @@ services:
       - "8000:8000"
     environment:
       OLLAMA_HOST: http://host.docker.internal:11434  # Or use your server's IP
+      OPENAI_API_KEY: ""  # Optional Bearer token for OpenAI-compatible /v1 endpoints
       PUID: 1000   # Set to the UID that owns your photos directory (run: id -u)
       PGID: 1000   # Set to the GID that owns your photos directory (run: id -g)
     volumes:

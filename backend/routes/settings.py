@@ -17,7 +17,7 @@ _MUTABLE_SETTINGS = {
     "rename_mode", "confidence_threshold", "filename_template",
     "max_filename_len", "filename_case", "use_exif_date", "use_gps",
     "gps_detail", "concurrent_workers", "watch_mode",
-    "vision_model", "llm_model", "output_language", "ollama_host", "process_subdirs",
+    "vision_model", "llm_model", "output_language", "ollama_host", "openai_api_key", "process_subdirs",
     "thumbnail_max_size", "thumbnail_quality", "thumbnail_retain_days",
     "dry_run",
     "excluded_folders",
@@ -34,7 +34,7 @@ _MUTABLE_SETTINGS = {
 }
 
 # Keys that require recreating the Ollama client
-_OLLAMA_KEYS = {"ollama_host", "vision_model", "llm_model"}
+_OLLAMA_KEYS = {"ollama_host", "vision_model", "llm_model", "openai_api_key"}
 
 
 class SettingsUpdate(BaseModel):
@@ -106,6 +106,7 @@ async def _apply_settings_update(request: Request, body: SettingsUpdate):
             host=new_settings.ollama_host,
             vision_model=new_settings.vision_model,
             llm_model=new_settings.llm_model,
+            openai_api_key=new_settings.openai_api_key,
         )
         # Carry over prompt templates from the old client
         new_ollama.set_templates(old_ollama._vision_template, old_ollama._context_template)

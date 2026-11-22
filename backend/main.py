@@ -17,12 +17,29 @@ from starlette.responses import RedirectResponse, Response
 from backend.auth import COOKIE_NAME, SESSION_TTL, create_session, verify_session
 
 import pillow_heif
+
 pillow_heif.register_heif_opener()
 
 from backend.config import get_settings
-from backend.database import init_db, recover_stuck_images, get_pending_image_ids, get_image, get_outcome_stats, get_stats, list_images, get_rename_history, count_images, count_rename_history
+from backend.database import (
+    init_db,
+    recover_stuck_images,
+    get_pending_image_ids,
+    get_image,
+    get_outcome_stats,
+    get_stats,
+    list_images,
+    get_rename_history,
+    count_images,
+    count_rename_history,
+)
 from backend.ollama_client import OllamaClient
-from backend.prompts import ensure_defaults, get_active_prompt, STAGE_VISION, STAGE_CONTEXT
+from backend.prompts import (
+    ensure_defaults,
+    get_active_prompt,
+    STAGE_VISION,
+    STAGE_CONTEXT,
+)
 from backend.routes import create_api_router
 from backend.scheduler import Scheduler
 from backend.watcher import FileWatcher
@@ -62,7 +79,8 @@ async def lifespan(app: FastAPI):
     if recovered or failed:
         logger.info(
             "Recovery: reset %d stuck image(s) to pending, %d exceeded retry limit",
-            recovered, failed,
+            recovered,
+            failed,
         )
 
     # Prompt library — ensure defaults exist, load active templates
@@ -75,6 +93,7 @@ async def lifespan(app: FastAPI):
         host=settings.ollama_host,
         vision_model=settings.vision_model,
         llm_model=settings.llm_model,
+        openai_api_key=settings.openai_api_key,
     )
     ollama.set_templates(
         vision_prompt["content"] if vision_prompt else "",
@@ -91,7 +110,9 @@ async def lifespan(app: FastAPI):
     pending_ids = await get_pending_image_ids(db)
     if pending_ids:
         await worker.enqueue(pending_ids)
-        logger.info("Re-enqueued %d pending image(s) from previous session", len(pending_ids))
+        logger.info(
+            "Re-enqueued %d pending image(s) from previous session", len(pending_ids)
+        )
 
     # File watcher
     watcher = FileWatcher(db=db, settings=settings, worker=worker)
@@ -107,7 +128,11 @@ async def lifespan(app: FastAPI):
         await watcher.start()
 
     # Workspace (temporary processing area)
-    workspace_dir = Path(settings.workspace_dir) if settings.workspace_dir else data_dir / "workspace"
+    workspace_dir = (
+        Path(settings.workspace_dir)
+        if settings.workspace_dir
+        else data_dir / "workspace"
+    )
     workspace = Workspace(workspace_dir=workspace_dir, settings=settings, ollama=ollama)
     await workspace.init()
     app.state.workspace = workspace
@@ -128,7 +153,8 @@ async def lifespan(app: FastAPI):
 
     logger.info(
         "A-Eye started — mode=%s, photos=%s (%s), ollama=%s",
-        settings.rename_mode, settings.photos_dir,
+        settings.rename_mode,
+        settings.photos_dir,
         "read-only" if photos_readonly else "read-write",
         settings.ollama_host,
     )
@@ -154,7 +180,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Allow wizard, login page, and essential API endpoints without auth
-        skip_exact = ("/api/health", "/api/models", "/api/onboard/settings", "/login", "/api/login")
+        skip_exact = (
+            "/api/health",
+            "/api/models",
+            "/api/onboard/settings",
+            "/login",
+            "/api/login",
+        )
         skip_prefix = ("/onboard", "/static/")
         path = request.url.path
         if path in skip_exact or any(path.startswith(p) for p in skip_prefix):
@@ -162,7 +194,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # 1. Check session cookie
         cookie = request.cookies.get(COOKIE_NAME)
-        if cookie and verify_session(cookie, settings.basic_auth_user, settings.basic_auth_pass):
+        if cookie and verify_session(
+            cookie, settings.basic_auth_user, settings.basic_auth_pass
+        ):
             return await call_next(request)
 
         # 2. Check Basic Auth header (for API clients like curl)
@@ -211,7 +245,9 @@ app.add_middleware(SetupRedirectMiddleware)
 if _STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
-templates = Jinja2Templates(directory=str(_TEMPLATES_DIR)) if _TEMPLATES_DIR.exists() else None
+templates = (
+    Jinja2Templates(directory=str(_TEMPLATES_DIR)) if _TEMPLATES_DIR.exists() else None
+)
 
 # API routes
 app.include_router(create_api_router())
@@ -233,10 +269,13 @@ def _page_context(request: Request) -> dict:
 
 # -- Page routes (server-rendered HTMX) -------------------------------------
 
+
 @app.get("/", response_class=HTMLResponse)
 async def page_dashboard(request: Request):
     if not templates:
-        return HTMLResponse("<h1>A-Eye</h1><p>Frontend templates not found. API is available at /api/</p>")
+        return HTMLResponse(
+            "<h1>A-Eye</h1><p>Frontend templates not found. API is available at /api/</p>"
+        )
     db = request.app.state.db
     stats = await get_stats(db)
     outcomes = await get_outcome_stats(db)
@@ -253,10 +292,14 @@ async def page_onboard(request: Request):
     if not templates:
         return HTMLResponse("<p>Templates not found</p>")
     photos_readonly = getattr(request.app.state, "photos_readonly", False)
-    return templates.TemplateResponse(request, name="onboard.html", context={
-        "settings": settings,
-        "photos_readonly": photos_readonly,
-    })
+    return templates.TemplateResponse(
+        request,
+        name="onboard.html",
+        context={
+            "settings": settings,
+            "photos_readonly": photos_readonly,
+        },
+    )
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -265,16 +308,22 @@ async def page_login(request: Request):
     # If already authenticated via cookie, redirect to dashboard
     if settings.basic_auth_user and settings.basic_auth_pass:
         cookie = request.cookies.get(COOKIE_NAME)
-        if cookie and verify_session(cookie, settings.basic_auth_user, settings.basic_auth_pass):
+        if cookie and verify_session(
+            cookie, settings.basic_auth_user, settings.basic_auth_pass
+        ):
             return RedirectResponse("/", status_code=302)
     # If auth not enabled, no need for login page
     if not settings.basic_auth_user or not settings.basic_auth_pass:
         return RedirectResponse("/", status_code=302)
     if not templates:
         return HTMLResponse("<p>Templates not found</p>")
-    return templates.TemplateResponse(request, name="login.html", context={
-        "settings": settings,
-    })
+    return templates.TemplateResponse(
+        request,
+        name="login.html",
+        context={
+            "settings": settings,
+        },
+    )
 
 
 class _LoginRequest(BaseModel):
@@ -314,7 +363,14 @@ async def api_logout():
 
 
 @app.get("/queue", response_class=HTMLResponse)
-async def page_queue(request: Request, status: str | None = None, page: int = 1, source: str = "library", sort: str = "created_at", sort_dir: str = "desc"):
+async def page_queue(
+    request: Request,
+    status: str | None = None,
+    page: int = 1,
+    source: str = "library",
+    sort: str = "created_at",
+    sort_dir: str = "desc",
+):
     if not templates:
         return HTMLResponse("<p>Templates not found</p>")
 
@@ -331,17 +387,28 @@ async def page_queue(request: Request, status: str | None = None, page: int = 1,
 
     limit = 50
     offset = (page - 1) * limit
-    images = await list_images(db, status=status, offset=offset, limit=limit, sort=sort, sort_dir=sort_dir)
+    images = await list_images(
+        db, status=status, offset=offset, limit=limit, sort=sort, sort_dir=sort_dir
+    )
     total = await count_images(db, status=status)
     total_pages = max(1, (total + limit - 1) // limit)
     stats = await get_stats(db)
     ctx = _page_context(request)
-    ctx.update({
-        "images": images, "status_filter": status, "page": page,
-        "total_pages": total_pages, "total": total, "stats": stats,
-        "api_prefix": api_prefix, "workspace_mode": workspace_mode, "source": source,
-        "sort": sort, "sort_dir": sort_dir,
-    })
+    ctx.update(
+        {
+            "images": images,
+            "status_filter": status,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "stats": stats,
+            "api_prefix": api_prefix,
+            "workspace_mode": workspace_mode,
+            "source": source,
+            "sort": sort,
+            "sort_dir": sort_dir,
+        }
+    )
     return templates.TemplateResponse(request, name="queue.html", context=ctx)
 
 
@@ -367,11 +434,17 @@ async def page_review(request: Request, page: int = 1, source: str = "library"):
     total = await count_images(db, status="proposed")
     total_pages = max(1, (total + limit - 1) // limit)
     ctx = _page_context(request)
-    ctx.update({
-        "images": images, "page": page, "total_pages": total_pages,
-        "total": total, "api_prefix": api_prefix,
-        "workspace_mode": workspace_mode, "source": source,
-    })
+    ctx.update(
+        {
+            "images": images,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "api_prefix": api_prefix,
+            "workspace_mode": workspace_mode,
+            "source": source,
+        }
+    )
     return templates.TemplateResponse(request, name="review.html", context=ctx)
 
 
