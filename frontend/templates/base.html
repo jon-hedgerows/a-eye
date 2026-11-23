@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/style.css?v=64">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
+
 <body class="{% if catalogue_mode %}catalogue-mode{% endif %}" hx-headers='{"Accept": "application/json"}'>
     <nav class="navbar">
         <a href="/" class="nav-logo">
@@ -38,12 +40,14 @@
             <span class="mode-badge mode-catalogue">Catalogue</span>
             {% endif %}
         </div>
-        <div class="nav-status" id="ollama-status" hx-get="/api/health" hx-trigger="load, every 30s" hx-swap="innerHTML" hx-target="#ollama-status">
+        <div class="nav-status" id="ollama-status" hx-get="/api/health" hx-trigger="load, every 30s" hx-swap="innerHTML"
+            hx-target="#ollama-status">
             <span class="status-dot unknown"></span> Checking...
         </div>
         {% if auth_enabled %}
         <a href="#" class="nav-logout" onclick="doLogout(event)" title="Logout">Logout</a>
         {% endif %}
+        {{ build_date }}
         <a href="https://spaceinvaderone.com" class="nav-sio" target="_blank" rel="noopener">
             <img src="/static/sio.png" alt="SpaceInvaderOne" height="28">
         </a>
@@ -64,12 +68,14 @@
 
     <!-- Image Detail Modal -->
     <div id="image-modal" class="modal-overlay" onclick="closeModal(event)" style="display:none">
-        <button class="modal-nav modal-nav-prev" id="modal-prev" onclick="modalPrev()" title="Previous image">&#8249;</button>
+        <button class="modal-nav modal-nav-prev" id="modal-prev" onclick="modalPrev()"
+            title="Previous image">&#8249;</button>
         <div class="modal-content">
             <button class="modal-close" onclick="closeImageModal()">&times;</button>
             <div class="modal-body">
                 <div class="modal-image-col">
-                    <div class="modal-image" id="modal-image-link" onclick="openFullImage()" title="Open full-size image">
+                    <div class="modal-image" id="modal-image-link" onclick="openFullImage()"
+                        title="Open full-size image">
                         <img id="modal-thumb" src="" alt="">
                     </div>
                     <details id="modal-sidecar-section" style="display:none">
@@ -83,12 +89,17 @@
 
                     <div class="modal-meta">
                         <div class="meta-row"><span class="meta-label">Date</span><span id="modal-date">-</span></div>
-                        <div class="meta-row"><span class="meta-label">Camera</span><span id="modal-camera">-</span></div>
-                        <div class="meta-row"><span class="meta-label">Location</span><span id="modal-location">-</span></div>
+                        <div class="meta-row"><span class="meta-label">Camera</span><span id="modal-camera">-</span>
+                        </div>
+                        <div class="meta-row"><span class="meta-label">Location</span><span id="modal-location">-</span>
+                        </div>
                         <div class="meta-row"><span class="meta-label">GPS</span><span id="modal-gps">-</span></div>
-                        <div class="meta-row"><span class="meta-label">Confidence</span><span id="modal-confidence">-</span></div>
-                        <div class="meta-row"><span class="meta-label">Original Name</span><span id="modal-original">-</span></div>
-                        <div class="meta-row"><span class="meta-label">File Size</span><span id="modal-size">-</span></div>
+                        <div class="meta-row"><span class="meta-label">Confidence</span><span
+                                id="modal-confidence">-</span></div>
+                        <div class="meta-row"><span class="meta-label">Original Name</span><span
+                                id="modal-original">-</span></div>
+                        <div class="meta-row"><span class="meta-label">File Size</span><span id="modal-size">-</span>
+                        </div>
                     </div>
 
                     <div id="modal-context-section" style="display:none">
@@ -107,18 +118,24 @@
                     </details>
 
                     <div class="modal-actions">
-                        <button class="btn btn-sm btn-success" id="modal-approve-btn" onclick="modalApprove()" style="display:none">Approve</button>
-                        <button class="btn btn-sm" id="modal-skip-btn" onclick="modalSkip()" style="display:none">Skip</button>
+                        <button class="btn btn-sm btn-success" id="modal-approve-btn" onclick="modalApprove()"
+                            style="display:none">Approve</button>
+                        <button class="btn btn-sm" id="modal-skip-btn" onclick="modalSkip()"
+                            style="display:none">Skip</button>
                         <button class="btn btn-sm" onclick="modalReprocess()">Reprocess</button>
-                        <button class="btn btn-sm btn-warning" id="modal-revert-btn" onclick="modalRevert()" style="display:none">Revert</button>
+                        <button class="btn btn-sm btn-warning" id="modal-revert-btn" onclick="modalRevert()"
+                            style="display:none">Revert</button>
                         <a class="btn btn-sm" id="modal-download-btn" href="#" download>Download</a>
-                        <button class="btn btn-sm btn-error" id="modal-trash-btn" onclick="modalTrash()" style="display:none">Delete</button>
-                        <button class="btn btn-sm" id="modal-queue-btn" onclick="modalToggleQueue()">Add to Queue</button>
+                        <button class="btn btn-sm btn-error" id="modal-trash-btn" onclick="modalTrash()"
+                            style="display:none">Delete</button>
+                        <button class="btn btn-sm" id="modal-queue-btn" onclick="modalToggleQueue()">Add to
+                            Queue</button>
                     </div>
                 </div>
             </div>
         </div>
-        <button class="modal-nav modal-nav-next" id="modal-next" onclick="modalNext()" title="Next image">&#8250;</button>
+        <button class="modal-nav modal-nav-next" id="modal-next" onclick="modalNext()"
+            title="Next image">&#8250;</button>
     </div>
 
     <!-- Confirm Modal -->
@@ -142,8 +159,7 @@
                 <small>Previously used: <em id="context-modal-prev-text"></em></small>
             </p>
             <textarea id="context-modal-input" rows="3" style="width:100%;margin:0.5rem 0"
-                      placeholder="e.g. Holiday to Crete 2021, or The grey husky is named Jax"
-                      maxlength="500"></textarea>
+                placeholder="e.g. Holiday to Crete 2021, or The grey husky is named Jax" maxlength="500"></textarea>
             <div class="confirm-actions">
                 <button class="btn" onclick="contextModalCancel()">Cancel</button>
                 <button class="btn" onclick="contextModalSkip()">Without Context</button>
@@ -166,9 +182,10 @@
 
     {% block page_scripts %}{% endblock %}
     <script>
-    window.PHOTOS_READONLY = {{ 'true' if photos_readonly else 'false' }};
-    window.CATALOGUE_MODE = {{ 'true' if catalogue_mode else 'false' }};
+        window.PHOTOS_READONLY = {{ 'true' if photos_readonly else 'false' }};
+        window.CATALOGUE_MODE = {{ 'true' if catalogue_mode else 'false' }};
     </script>
     <script src="/static/js/app.js?v=79"></script>
 </body>
+
 </html>

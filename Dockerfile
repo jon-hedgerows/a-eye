@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu \
     && chown -R aeye:aeye /app/data \
     && chmod +x /app/entrypoint.sh
 
+# display the build date in the nav bar, for tracking whether I'm running the right dev build
+RUN sed -i "s#{{ build_date }}#<div class=\"nav-status\"><span style=\"font-size:smaller;\">Build $(date '+%Y-%m-%d_%H:%M')</span></div>#" frontend/templates/base.html
+
 EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
