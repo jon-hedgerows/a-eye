@@ -47,7 +47,7 @@ from backend.worker import WorkerQueue
 from backend.workspace import Workspace
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
