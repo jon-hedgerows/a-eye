@@ -91,6 +91,19 @@ class Settings(BaseSettings):
     thumbnail_quality: int = 80
     thumbnail_retain_days: int = 30  # 0 = never auto-prune
 
+    # -- Logging --
+    log_level: str = "INFO"  # DEBUG | INFO | WARNING | ERROR | CRITICAL
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _validate_log_level(cls, v: str) -> str:
+        valid = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        v = str(v).strip().upper()
+        if v not in valid:
+            logger.warning("Invalid log_level '%s', defaulting to 'INFO'", v)
+            return "INFO"
+        return v
+
     @field_validator("ollama_host", mode="before")
     @classmethod
     def _validate_ollama_host(cls, v: str) -> str:
@@ -278,3 +291,10 @@ def _coerce(value: Any, annotation: Any) -> Any:
         except (ValueError, TypeError):
             return value
     return value
+
+
+def get_log_level(settings: "Settings | None" = None) -> int:
+    """Return the integer logging level for the given settings (or current settings)."""
+    if settings is None:
+        settings = get_settings()
+    return logging.getLevelName(settings.log_level)

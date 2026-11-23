@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from backend.config import update_settings as config_update_settings, get_settings
+from backend.config import update_settings as config_update_settings, get_log_level, get_settings
 from backend.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ _MUTABLE_SETTINGS = {
     "dashboard_showcase_kenburns",
     "dashboard_mosaic_speed",
     "dashboard_crossfade_speed",
+    "log_level",
 }
 
 # Keys that require recreating the Ollama client
@@ -119,6 +120,11 @@ async def _apply_settings_update(request: Request, body: SettingsUpdate):
             "Recreated Ollama client — host=%s, vision=%s, llm=%s",
             new_settings.ollama_host, new_settings.vision_model, new_settings.llm_model,
         )
+
+    # Apply log level change live (no restart required)
+    if "log_level" in updates:
+        logging.getLogger().setLevel(get_log_level(new_settings))
+        logger.info("Log level set to %s", new_settings.log_level)
 
     logger.info("Settings updated via UI: %s", list(updates.keys()))
     return {"updated": list(updates.keys())}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from base64 import b64decode
 from contextlib import asynccontextmanager
@@ -20,7 +21,7 @@ import pillow_heif
 
 pillow_heif.register_heif_opener()
 
-from backend.config import get_settings
+from backend.config import get_log_level, get_settings
 from backend.database import (
     init_db,
     recover_stuck_images,
@@ -46,11 +47,23 @@ from backend.watcher import FileWatcher
 from backend.worker import WorkerQueue
 from backend.workspace import Workspace
 
+logger = logging.getLogger(__name__)
+
+_log_level_name = os.environ.get("LOG_LEVEL", "INFO").strip().upper()
+if _log_level_name not in {
+    "DEBUG",
+    "INFO",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+}:
+    _log_level_name = "INFO"
+    logger.warning("Invalid LOG_LEVEL env var '%s', defaulting to 'INFO'", _log_level_name)
+
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.getLevelName(_log_level_name),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-logger = logging.getLogger(__name__)
 
 # Resolve paths relative to the project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -63,6 +76,10 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle for the app."""
     settings = get_settings()
     app.state.settings = settings
+
+    # Apply configured log level (env LOG_LEVEL / config.json) to the root logger
+    logging.getLogger().setLevel(get_log_level(settings))
+    logger.info("Log level set to %s", settings.log_level)
 
     # Ensure data directories exist
     data_dir = Path(settings.data_dir)
