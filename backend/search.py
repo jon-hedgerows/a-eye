@@ -56,7 +56,7 @@ async def search_images(
     query: str,
     ollama: OllamaClient | None = None,
     use_llm: bool = False,
-    limit: int = 200,
+    limit: int = 20000,
 ) -> dict[str, Any]:
     """Execute a search query, using LLM interpretation if available.
 
@@ -83,7 +83,8 @@ async def _llm_search(
 
     try:
         raw = await ollama._generate(
-            model=ollama.llm_model, prompt=prompt,
+            model=ollama.llm_model,
+            prompt=prompt,
             options={"temperature": 0},
         )
         interpretation = _parse_search_json(raw)
@@ -109,11 +110,15 @@ async def _llm_search(
         # Strip date-like tokens from keywords when date filters handle them
         if interpretation.get("date_from") or interpretation.get("date_to"):
             expanded = [kw for kw in expanded if not _is_date_token(kw)]
-        interpretation["keywords"] = list(dict.fromkeys(expanded))  # dedupe, preserve order
+        interpretation["keywords"] = list(
+            dict.fromkeys(expanded)
+        )  # dedupe, preserve order
 
         logger.info("Search interpretation for %r: %s", query, interpretation)
     except Exception as exc:
-        logger.warning("LLM search interpretation failed: %s — falling back to structured", exc)
+        logger.warning(
+            "LLM search interpretation failed: %s — falling back to structured", exc
+        )
         result = await _structured_search(db, query, limit)
         result["mode"] = "llm_fallback"
         return result
@@ -141,10 +146,16 @@ async def _structured_search(
 ) -> dict[str, Any]:
     """Simple keyword-based search without LLM."""
     # Split query into keywords
-    keywords = [w.strip().lower() for w in query.split() if w.strip() and len(w.strip()) >= 2]
+    keywords = [
+        w.strip().lower() for w in query.split() if w.strip() and len(w.strip()) >= 2
+    ]
 
     if not keywords:
-        return {"results": [], "mode": "structured", "query_interpretation": {"keywords": []}}
+        return {
+            "results": [],
+            "mode": "structured",
+            "query_interpretation": {"keywords": []},
+        }
 
     interpretation = {"keywords": keywords}
     conditions, params = _build_sql_conditions(interpretation)
@@ -162,9 +173,9 @@ async def _structured_search(
 def _is_date_token(token: str) -> bool:
     """Return True if a token looks like a year or date (e.g. '2019', '2019-07')."""
     t = token.strip()
-    if re.fullmatch(r"\d{4}", t):           # 4-digit year: 2019
+    if re.fullmatch(r"\d{4}", t):  # 4-digit year: 2019
         return True
-    if re.fullmatch(r"\d{4}-\d{2}", t):     # year-month: 2019-07
+    if re.fullmatch(r"\d{4}-\d{2}", t):  # year-month: 2019-07
         return True
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", t):  # full date: 2019-07-10
         return True
@@ -188,11 +199,15 @@ def _parse_search_json(raw: str) -> dict[str, Any]:
             return json.loads(match.group())
         # Last resort: extract keywords from the text
         logger.warning("Could not parse LLM search response as JSON")
-        words = [w.strip().lower() for w in raw.split() if w.strip() and len(w.strip()) >= 2]
+        words = [
+            w.strip().lower() for w in raw.split() if w.strip() and len(w.strip()) >= 2
+        ]
         return {"keywords": words[:10]}
 
 
-def _build_sql_conditions(interpretation: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+def _build_sql_conditions(
+    interpretation: dict[str, Any],
+) -> tuple[list[str], dict[str, Any]]:
     """Build SQL WHERE conditions from the interpreted search plan."""
     conditions: list[str] = []
     params: dict[str, Any] = {}
@@ -257,7 +272,11 @@ async def _execute_search(
     limit: int,
 ) -> list[dict]:
     """Execute the search SQL and return results."""
-    where = f"WHERE {' AND '.join(conditions)}" if conditions else "WHERE status != 'trashed'"
+    where = (
+        f"WHERE {' AND '.join(conditions)}"
+        if conditions
+        else "WHERE status != 'trashed'"
+    )
     sql = f"SELECT * FROM images {where} ORDER BY created_at DESC LIMIT :limit"
     params["limit"] = limit
 
@@ -265,10 +284,13 @@ async def _execute_search(
     rows = await cursor.fetchall()
 
     from backend.database import _row_to_dict
+
     return [_row_to_dict(r) for r in rows]
 
 
-def _score_results(results: list[dict], keywords: list[str], query: str = "") -> list[dict]:
+def _score_results(
+    results: list[dict], keywords: list[str], query: str = ""
+) -> list[dict]:
     """Score each result by weighted keyword match density and sort by score.
 
     Two-tier matching:
@@ -289,7 +311,9 @@ def _score_results(results: list[dict], keywords: list[str], query: str = "") ->
     query_terms = {w.lower() for w in query.split() if len(w) >= 2}
 
     # Pre-compile two patterns per keyword: exact word boundary and prefix-only
-    kw_exact = {kw: re.compile(r"\b" + re.escape(kw.lower()) + r"\b") for kw in keywords}
+    kw_exact = {
+        kw: re.compile(r"\b" + re.escape(kw.lower()) + r"\b") for kw in keywords
+    }
     kw_prefix = {kw: re.compile(r"\b" + re.escape(kw.lower())) for kw in keywords}
 
     for r in results:
@@ -298,13 +322,18 @@ def _score_results(results: list[dict], keywords: list[str], query: str = "") ->
         match_info = []
 
         desc = (r.get("vision_description") or "").lower()
-        tags = (r.get("ai_tags") or "")
+        tags = r.get("ai_tags") or ""
         if isinstance(tags, list):
             tags = " ".join(tags).lower()
         else:
             tags = str(tags).lower()
         location = (r.get("location_name") or "").lower()
-        filename = (r.get("current_filename") or "").lower().replace("_", " ").replace("-", " ")
+        filename = (
+            (r.get("current_filename") or "")
+            .lower()
+            .replace("_", " ")
+            .replace("-", " ")
+        )
         context = (r.get("processing_context") or "").lower()
 
         searchable = f"{desc} {tags} {location} {filename} {context}"
@@ -345,7 +374,9 @@ def _score_results(results: list[dict], keywords: list[str], query: str = "") ->
                     found_in.append("filename")
                 if prefix_pat.search(context):
                     found_in.append("context")
-                match_info.append({"keyword": kw, "found_in": found_in, "partial": True})
+                match_info.append(
+                    {"keyword": kw, "found_in": found_in, "partial": True}
+                )
 
         r["relevance_score"] = round(score / max_score, 2) if max_score > 0 else 0.0
         r["match_details"] = match_info
